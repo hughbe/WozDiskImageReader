@@ -2,12 +2,13 @@
 using Spectre.Console.Cli;
 using WozDiskImageReader;
 using WozDiskImageReader.Chunks;
+using WozDiskImageReader.Utilities;
 
 public sealed class Program
 {
     public static int Main(string[] args)
     {
-        var app = new CommandApp<ExtractCommand>();
+        var app = new CommandApp<DumpCommand>();
         app.Configure(config =>
         {
             config.SetApplicationName("woz-disk-image-dumper");
@@ -18,18 +19,15 @@ public sealed class Program
     }
 }
 
-sealed class ExtractSettings : CommandSettings
+sealed class DumpSettings : CommandSettings
 {
     [CommandArgument(0, "<input>")]
     public required string Input { get; init; }
-
-    [CommandOption("-o|--output")]
-    public string? Output { get; init; }
 }
 
-sealed class ExtractCommand : Command<ExtractSettings>
+sealed class DumpCommand : Command<DumpSettings>
 {
-    public override int Execute(CommandContext context, ExtractSettings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, DumpSettings settings, CancellationToken cancellationToken)
     {
         var input = new FileInfo(settings.Input);
         if (!input.Exists)
@@ -38,19 +36,28 @@ sealed class ExtractCommand : Command<ExtractSettings>
             return -1;
         }
 
-        using var stream = input.OpenRead();
-        var image = new WozDiskImage(stream);
+        WozDiskImage image;
+        try
+        {
+            using var stream = input.OpenRead();
+            image = new WozDiskImage(stream);
 
-        // Display header information
-        DisplayHeader(input, image);
+            // Display header information
+            DisplayHeader(input, image, stream);
 
-        // Display chunk information
-        DisplayChunks(image);
+            // Display chunk information
+            DisplayChunks(image);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException or NotImplementedException)
+        {
+            AnsiConsole.MarkupLine($"[red]Failed to parse WOZ disk image[/]: {Markup.Escape(ex.Message)}");
+            return -1;
+        }
 
         return 0;
     }
 
-    private static void DisplayHeader(FileInfo file, WozDiskImage image)
+    private static void DisplayHeader(FileInfo file, WozDiskImage image, Stream stream)
     {
         var table = new Table()
             .Border(TableBorder.Rounded)
@@ -59,11 +66,31 @@ sealed class ExtractCommand : Command<ExtractSettings>
         table.AddColumn("Property");
         table.AddColumn("Value");
 
-        table.AddRow("File", file.Name);
+        table.AddRow("File", Markup.Escape(file.Name));
         table.AddRow("Size", FormatSize(file.Length));
         table.AddRow("Signature", System.Text.Encoding.ASCII.GetString(image.Header.Signature.AsSpan()));
         table.AddRow("Version", $"WOZ{image.Version}");
-        table.AddRow("CRC32", image.Header.Crc == 0 ? "[dim]Not calculated[/]" : $"0x{image.Header.Crc:X8}");
+
+        if (image.Header.Crc == 0)
+        {
+            table.AddRow("CRC32", "[dim]Not calculated[/]");
+        }
+        else
+        {
+            stream.Seek(WozDiskImageHeader.Size, SeekOrigin.Begin);
+            var remainingData = new byte[stream.Length - WozDiskImageHeader.Size];
+            stream.ReadExactly(remainingData);
+            var calculatedCrc = Crc32.Calculate(remainingData);
+
+            if (calculatedCrc == image.Header.Crc)
+            {
+                table.AddRow("CRC32", $"0x{image.Header.Crc:X8} [green](valid)[/]");
+            }
+            else
+            {
+                table.AddRow("CRC32", $"0x{image.Header.Crc:X8} [red](invalid, calculated 0x{calculatedCrc:X8})[/]");
+            }
+        }
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -236,7 +263,6 @@ sealed class ExtractCommand : Command<ExtractSettings>
 
         table.AddColumn("Quarter Track", c => c.Alignment(Justify.Right));
         table.AddColumn("Track Index", c => c.Alignment(Justify.Right));
-        table.AddColumn("Status");
 
         var entries = tmap.Entries.AsSpan();
         for (int i = 0; i < entries.Length; i++)
@@ -244,14 +270,11 @@ sealed class ExtractCommand : Command<ExtractSettings>
             var trackIndex = entries[i];
             if (trackIndex == 0xFF)
             {
-                // Only show mapped tracks to avoid clutter
                 continue;
             }
 
             var quarterTrack = i / 4.0;
-            var status = trackIndex == 0xFF ? "[dim]Empty[/]" : "[green]Mapped[/]";
-
-            table.AddRow($"{quarterTrack:0.00}", trackIndex.ToString(), status);
+            table.AddRow($"{quarterTrack:0.00}", trackIndex.ToString());
         }
 
         AnsiConsole.Write(table);
@@ -361,7 +384,6 @@ sealed class ExtractCommand : Command<ExtractSettings>
 
         table.AddColumn("Quarter Track", c => c.Alignment(Justify.Right));
         table.AddColumn("Track Index", c => c.Alignment(Justify.Right));
-        table.AddColumn("Status");
 
         var entries = flux.Entries.AsSpan();
         for (int i = 0; i < entries.Length; i++)
@@ -369,12 +391,11 @@ sealed class ExtractCommand : Command<ExtractSettings>
             var trackIndex = entries[i];
             if (trackIndex == 0xFF)
             {
-                // Only show mapped tracks to avoid clutter
                 continue;
             }
 
             var quarterTrack = i / 4.0;
-            table.AddRow($"{quarterTrack:0.00}", trackIndex.ToString(), "[green]Mapped[/]");
+            table.AddRow($"{quarterTrack:0.00}", trackIndex.ToString());
         }
 
         AnsiConsole.Write(table);
@@ -467,9 +488,9 @@ sealed class ExtractCommand : Command<ExtractSettings>
         {
             var values = kvp.Value == null || kvp.Value.Count == 0
                 ? "[dim]N/A[/]"
-                : string.Join(", ", kvp.Value);
+                : Markup.Escape(string.Join(", ", kvp.Value));
 
-            table.AddRow(kvp.Key, values);
+            table.AddRow(Markup.Escape(kvp.Key), values);
         }
 
         AnsiConsole.Write(table);
@@ -489,14 +510,4 @@ sealed class ExtractCommand : Command<ExtractSettings>
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private static string SanitizeName(string name)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        foreach (var invalidChar in invalidChars)
-        {
-            name = name.Replace(invalidChar, '_');
-        }
-
-        return name;
-    }
 }
