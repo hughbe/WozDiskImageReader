@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <None Include="../tests/Samples/*.dsk" Link="Samples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../tests/Samples/**/*.woz" Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

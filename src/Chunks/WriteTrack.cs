@@ -46,9 +46,9 @@ public readonly struct WriteTrack
     public uint Checksum { get; }
 
     /// <summary>
-    /// Gets the list of write commands for this track.
+    /// Gets the write commands for this track.
     /// </summary>
-    public List<WriteCommand> Commands { get; }
+    public WriteCommand[] Commands { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WriteTrack"/> struct by reading from the provided stream.
@@ -58,10 +58,6 @@ public readonly struct WriteTrack
     public WriteTrack(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         Span<byte> buffer = stackalloc byte[MinSize];
         if (stream.Read(buffer) != MinSize)
@@ -99,10 +95,10 @@ public readonly struct WriteTrack
         Checksum = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(offset, 4));
         offset += 4;
 
-        var commands = new List<WriteCommand>(CommandCount);
+        var commands = new WriteCommand[CommandCount];
         for (int i = 0; i < CommandCount; i++)
         {
-            commands.Add(new WriteCommand(stream));
+            commands[i] = new WriteCommand(stream);
         }
 
         Commands = commands;

@@ -24,10 +24,6 @@ public readonly struct WritesChunk
     public WritesChunk(Stream stream, int size)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         // Structure documented in https://applesaucefdc.com/woz/reference2/
         var offset = stream.Position;

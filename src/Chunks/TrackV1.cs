@@ -57,10 +57,6 @@ public readonly struct TrackV1
     public TrackV1(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         // Structure documented in https://applesaucefdc.com/woz/reference1/
         int offset = 0;

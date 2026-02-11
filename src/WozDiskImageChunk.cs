@@ -38,10 +38,6 @@ public readonly struct WozDiskImageChunk
     public WozDiskImageChunk(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         Offset = stream.Position;
 

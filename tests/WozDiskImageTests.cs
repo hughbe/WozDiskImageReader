@@ -86,7 +86,7 @@ public class WozDiskImageTests
                     if (image.Version == 1)
                     {
                         var trackDataChunk = new TracksV1Chunk(stream, (int)chunk.Size);
-                        Debug.WriteLine($"  Number of Tracks: {trackDataChunk.Tracks.Count}");
+                        Debug.WriteLine($"  Number of Tracks: {trackDataChunk.Tracks.Length}");
                         foreach (var track in trackDataChunk.Tracks)
                         {
                             Debug.WriteLine($"    Track - Bytes Used: {track.BytesUsed}, Bit Count: {track.BitCount}, Splice Point: {track.SplicePoint}");

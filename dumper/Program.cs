@@ -1,8 +1,8 @@
-﻿using Spectre.Console;
+﻿using System.IO.Hashing;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using WozDiskImageReader;
 using WozDiskImageReader.Chunks;
-using WozDiskImageReader.Utilities;
 
 public sealed class Program
 {
@@ -80,7 +80,7 @@ sealed class DumpCommand : Command<DumpSettings>
             stream.Seek(WozDiskImageHeader.Size, SeekOrigin.Begin);
             var remainingData = new byte[stream.Length - WozDiskImageHeader.Size];
             stream.ReadExactly(remainingData);
-            var calculatedCrc = Crc32.Calculate(remainingData);
+            var calculatedCrc = Crc32.HashToUInt32(remainingData);
 
             if (calculatedCrc == image.Header.Crc)
             {
@@ -301,7 +301,7 @@ sealed class DumpCommand : Command<DumpSettings>
 
         var table = new Table()
             .Border(TableBorder.Rounded)
-            .Title($"[bold cyan]TRKS Chunk - WOZ1 ({trks.Tracks.Count} tracks)[/]");
+            .Title($"[bold cyan]TRKS Chunk - WOZ1 ({trks.Tracks.Length} tracks)[/]");
 
         table.AddColumn("Track #", c => c.Alignment(Justify.Right));
         table.AddColumn("Bytes Used", c => c.Alignment(Justify.Right));
@@ -309,7 +309,7 @@ sealed class DumpCommand : Command<DumpSettings>
         table.AddColumn("Splice Point", c => c.Alignment(Justify.Right));
         table.AddColumn("Splice Info");
 
-        for (int i = 0; i < trks.Tracks.Count; i++)
+        for (int i = 0; i < trks.Tracks.Length; i++)
         {
             var track = trks.Tracks[i];
 
@@ -351,7 +351,7 @@ sealed class DumpCommand : Command<DumpSettings>
         table.AddColumn("Bit Count", c => c.Alignment(Justify.Right));
         table.AddColumn("Data Size");
 
-        for (int i = 0; i < trks.Tracks.Count; i++)
+        for (int i = 0; i < trks.Tracks.Length; i++)
         {
             var track = trks.Tracks[i];
 
@@ -435,7 +435,7 @@ sealed class DumpCommand : Command<DumpSettings>
         // Display individual write commands for each track
         foreach (var writeTrack in writ.WriteTracks)
         {
-            if (writeTrack.Commands.Count == 0)
+            if (writeTrack.Commands.Length == 0)
             {
                 continue;
             }
@@ -451,7 +451,7 @@ sealed class DumpCommand : Command<DumpSettings>
             cmdTable.AddColumn("Leader Bits", c => c.Alignment(Justify.Right));
             cmdTable.AddColumn("Leader Count", c => c.Alignment(Justify.Right));
 
-            for (int i = 0; i < writeTrack.Commands.Count; i++)
+            for (int i = 0; i < writeTrack.Commands.Length; i++)
             {
                 var cmd = writeTrack.Commands[i];
                 var leaderNibble = cmd.LeaderNibble == 0x00

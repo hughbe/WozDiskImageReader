@@ -54,10 +54,6 @@ public readonly struct WriteCommand
     public WriteCommand(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         Span<byte> buffer = stackalloc byte[Size];
         if (stream.Read(buffer) != buffer.Length)

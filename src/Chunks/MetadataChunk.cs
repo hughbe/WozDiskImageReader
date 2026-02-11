@@ -1,6 +1,3 @@
-using System;
-using System.Drawing;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace WozDiskImageReader.Chunks;
@@ -29,10 +26,6 @@ public readonly struct MetadataChunk
     public MetadataChunk(Stream stream, int size)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         // Structure documented in https://applesaucefdc.com/woz/reference1/
         var metadataBuffer = size <= 1024 ? stackalloc byte[size] : new byte[size];

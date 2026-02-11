@@ -11,9 +11,9 @@ public readonly struct TracksV1Chunk
     public static ReadOnlySpan<byte> ID => "TRKS"u8;
 
     /// <summary>
-    /// Gets the list of tracks contained in this chunk.
+    /// Gets the tracks contained in this chunk.
     /// </summary>
-    public List<TrackV1> Tracks { get; }
+    public TrackV1[] Tracks { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TracksV1Chunk"/> struct by reading from the provided stream.
@@ -24,16 +24,12 @@ public readonly struct TracksV1Chunk
     public TracksV1Chunk(Stream stream, int size)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         int count = size / TrackV1.Size;
-        var tracks = new List<TrackV1>(count);
+        var tracks = new TrackV1[count];
         for (int i = 0; i < count; i++)
         {
-            tracks.Add(new TrackV1(stream));
+            tracks[i] = new TrackV1(stream);
         }
 
         Tracks = tracks;

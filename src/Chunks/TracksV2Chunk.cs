@@ -10,10 +10,12 @@ public readonly struct TracksV2Chunk
     /// </summary>
     public static ReadOnlySpan<byte> ID => "TRKS"u8;
 
+    private const int TrackCount = 160;
+
     /// <summary>
-    /// Gets the list of tracks contained in this chunk.
+    /// Gets the tracks contained in this chunk.
     /// </summary>
-    public List<TrackV2> Tracks { get; }
+    public TrackV2[] Tracks { get; }
 
     /// <summary>
     /// Gets the raw track data blocks.
@@ -29,22 +31,22 @@ public readonly struct TracksV2Chunk
     public TracksV2Chunk(Stream stream, int size)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanSeek || !stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be seekable and readable.", nameof(stream));
-        }
 
         // Structure documented in https://applesaucefdc.com/woz/reference2/
         var offset = stream.Position;
 
-        // First track in track array. TMAP value of 0.
-        // Second track in track array. TMAP value of 1.
-        // Third track in track array. TMAP value of 2.
-        // Last track in track array. TMAP value of 159.
-        var tracks = new List<TrackV2>(160);
-        for (int i = 0; i < 160; i++)
+        // Read all 160 track headers (8 bytes each = 1280 bytes) in a single I/O call.
+        const int headerSize = TrackCount * TrackV2.Size;
+        Span<byte> headerBuffer = stackalloc byte[headerSize];
+        if (stream.Read(headerBuffer) != headerSize)
         {
-            tracks.Add(new TrackV2(stream));
+            throw new ArgumentException("Could not read entire TRACKS chunk header data from stream.", nameof(stream));
+        }
+
+        var tracks = new TrackV2[TrackCount];
+        for (int i = 0; i < TrackCount; i++)
+        {
+            tracks[i] = new TrackV2(headerBuffer.Slice(i * TrackV2.Size, TrackV2.Size));
         }
 
         Tracks = tracks;
