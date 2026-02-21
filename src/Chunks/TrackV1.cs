@@ -63,16 +63,10 @@ public readonly struct TrackV1
 
         // The bitstream data padded out to 6646 bytes
         Bitstream = new byte[6646];
-        if (stream.Read(Bitstream) != Bitstream.Length)
-        {
-            throw new ArgumentException("Could not read Track from stream.", nameof(stream));
-        }
+        stream.ReadExactly(Bitstream);
 
         Span<byte> buffer = stackalloc byte[Size - Bitstream.Length];
-        if (stream.Read(buffer) != buffer.Length)
-        {
-            throw new ArgumentException("Could not read Track from stream.", nameof(stream));
-        }
+        stream.ReadExactly(buffer);
 
         // The actual byte count for the bitstream.
         BytesUsed = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset, 2));

@@ -56,10 +56,7 @@ public readonly struct WriteCommand
         ArgumentNullException.ThrowIfNull(stream);
 
         Span<byte> buffer = stackalloc byte[Size];
-        if (stream.Read(buffer) != buffer.Length)
-        {
-            throw new ArgumentException("Could not read entire WriteCommand from stream.", nameof(stream));
-        }
+        stream.ReadExactly(buffer);
 
         // Structure documented in https://applesaucefdc.com/woz/reference2/
         int offset = 0;

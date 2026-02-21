@@ -33,10 +33,7 @@ public readonly struct TrackMapChunk
         ArgumentNullException.ThrowIfNull(stream);
 
         Span<byte> buffer = stackalloc byte[Size];
-        if (stream.Read(buffer) != Size)
-        {
-            throw new ArgumentException("Could not read Track Map chunk from stream.", nameof(stream));
-        }
+        stream.ReadExactly(buffer);
 
         // Structure documented in https://applesaucefdc.com/woz/reference1/
         int offset = 0;

@@ -42,10 +42,7 @@ public readonly struct WozDiskImageChunk
         Offset = stream.Position;
 
         Span<byte> buffer = stackalloc byte[MinSize];
-        if (stream.Read(buffer) != MinSize)
-        {
-            throw new ArgumentException("Stream is too short to contain a valid WOZ chunk.", nameof(stream));
-        }
+        stream.ReadExactly(buffer);
 
         // Structure documented in https://applesaucefdc.com/woz/reference1/
         int offset = 0;

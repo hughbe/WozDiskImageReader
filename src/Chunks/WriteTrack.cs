@@ -60,10 +60,7 @@ public readonly struct WriteTrack
         ArgumentNullException.ThrowIfNull(stream);
 
         Span<byte> buffer = stackalloc byte[MinSize];
-        if (stream.Read(buffer) != MinSize)
-        {
-            throw new ArgumentException("Could not read entire WriteTrack from stream.", nameof(stream));
-        }
+        stream.ReadExactly(buffer);
 
         // Structure documented in https://applesaucefdc.com/woz/reference2/
         int offset = 0;

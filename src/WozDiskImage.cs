@@ -47,10 +47,7 @@ public class WozDiskImage
         // Appendix A, and you should be passing in 0x00000000 as the initial crc
         // value.
         Span<byte> headerBuffer = stackalloc byte[WozDiskImageHeader.Size];
-        if (stream.Read(headerBuffer) != WozDiskImageHeader.Size)
-        {
-            throw new InvalidDataException("Stream is too short to contain a valid WOZ header.");
-        }
+        stream.ReadExactly(headerBuffer);
 
         Header = new WozDiskImageHeader(headerBuffer);
         Version = Header.Signature switch
@@ -99,11 +96,7 @@ public class WozDiskImage
         _stream.Seek(chunk.Offset + WozDiskImageChunk.MinSize, SeekOrigin.Begin);
 
         var data = new byte[chunk.Size];
-        if (_stream.Read(data, 0, data.Length) != data.Length)
-        {
-            throw new ArgumentException("Could not read entire chunk data from stream.", nameof(chunk));
-        }
-
+        _stream.ReadExactly(data);
         return data;
     }
 
@@ -126,6 +119,7 @@ public class WozDiskImage
         }
 
         _stream.Seek(chunk.Offset + WozDiskImageChunk.MinSize, SeekOrigin.Begin);
-        return _stream.Read(buffer[..(int)chunk.Size]);
+        _stream.ReadExactly(buffer[..(int)chunk.Size]);
+        return (int)chunk.Size;
     }
 }

@@ -38,10 +38,7 @@ public readonly struct TracksV2Chunk
         // Read all 160 track headers (8 bytes each = 1280 bytes) in a single I/O call.
         const int headerSize = TrackCount * TrackV2.Size;
         Span<byte> headerBuffer = stackalloc byte[headerSize];
-        if (stream.Read(headerBuffer) != headerSize)
-        {
-            throw new ArgumentException("Could not read entire TRACKS chunk header data from stream.", nameof(stream));
-        }
+        stream.ReadExactly(headerBuffer);
 
         var tracks = new TrackV2[TrackCount];
         for (int i = 0; i < TrackCount; i++)
@@ -53,10 +50,8 @@ public readonly struct TracksV2Chunk
 
         // Start of the actual track bits.
         var remainingLength = size - (stream.Position - offset);
-        TrackDataBlocks = new byte[remainingLength];
-        if (stream.Read(TrackDataBlocks) != remainingLength)
-        {
-            throw new ArgumentException("Could not read entire TRACKS chunk data from stream.", nameof(stream));
-        }
+        var trackDataBlocks = new byte[remainingLength];
+        stream.ReadExactly(trackDataBlocks);
+        TrackDataBlocks = trackDataBlocks;
     }
 }
